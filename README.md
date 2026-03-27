@@ -1,7 +1,7 @@
 # ExoVision
 ### Build environment:
 ```bash
-python3 -m venv venv
+python3.10 -m venv venv
 source venv/bin/activate
 pip3.10 install -r requirements.txt
 ```
