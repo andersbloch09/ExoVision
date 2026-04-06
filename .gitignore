@@ -7,10 +7,10 @@ __pycache__/
 *.pyo
 
 # Environment variables
-.env
+# .env
 
 # Data folder (images, JSON, logs)
-data/
+# data/
 
 # Optional: OS-specific files
 .DS_Store

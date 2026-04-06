@@ -60,3 +60,13 @@ pip install --upgrade pip
 ## 7. Install your project dependencies
 pip install -r requirements.txt
 
+
+## Model Weight Update Strategies
+
+| Approach | Pros | Cons | Best For |
+|----------|------|------|----------|
+| **Atomic Swap** | Simple, fast | Doubles memory briefly | Jetson (small models) |
+| **Versioning** | Robust, checksum verify | More code | Production systems |
+| **Read-Write Lock** | Fine-grained control | Complex, can block reads | High-concurrency systems |
+
+**Recommendation for Jetson:** Use Atomic Swap - loads new model completely before acquiring lock, then swaps in microseconds. Inference never pauses.
