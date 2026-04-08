@@ -39,6 +39,7 @@ async def send_image():
         client_send_time = int(time.time() * 1000)
         send_frames_gen = send_frames()
         async for prediction in stub.StreamInference(send_frames_gen):
+            # Waits here until prediction arrives
             client_recv_time = int(time.time() * 1000)
             
             # Calculate latencies
