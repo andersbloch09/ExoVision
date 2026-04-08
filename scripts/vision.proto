@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package vision;
+
+service VisionModel {
+  // Send image frame for inference, receive prediction
+  rpc StreamInference(stream ImageFrame) returns (stream Prediction);
+  // Update model weights on receiver
+  rpc UpdateWeights(WeightUpdate) returns (UpdateResponse);
+}
+
+message ImageFrame {
+  bytes image_data = 1;           // Serialized image bytes
+  string filename = 2;
+  int64 timestamp = 3;            // Unix timestamp
+}
+
+message Prediction {
+  string filename = 1;
+  float confidence = 2;
+  string label = 3;
+  int64 inference_time_ms = 4;    // For latency tracking
+}
+
+message WeightUpdate {
+  bytes model_weights = 1;        // Serialized model
+  string version = 2;
+  int64 timestamp = 3;
+}
+
+message UpdateResponse {
+  string status = 1;              // "success" or "error"
+  string message = 2;
+}

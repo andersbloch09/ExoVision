@@ -1,9 +1,10 @@
 # ExoVision
-### Build environment:
+### Build environment on jetson:
 ```bash
 python3.10 -m venv venv
 source venv/bin/activate
-pip3.10 install -r requirements.txt
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
 ```
 ### Export variables:
 Create a .env file in the outer directory and fill the information
@@ -18,6 +19,11 @@ export ROLE=sender
 #### HOST:
 ```bash
 export DENMARK_HOST=andersarch
+```
+
+## Generate Code for gRPC
+```bash
+python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. scripts/vision.proto
 ```
 
 
