@@ -22,6 +22,8 @@ class VisionModelService(vision_pb2_grpc.VisionModelServicer):
         Bidirectional streaming for continuous inference.
         """
         for frame in request_iterator:
+            server_receive_time = int(time.time() * 1000)  # Timestamp when received
+            
             # Save received image
             file_path = os.path.join(
                 DATA_DIR, 
@@ -34,13 +36,29 @@ class VisionModelService(vision_pb2_grpc.VisionModelServicer):
             except Exception as e:
                 context.abort(grpc.StatusCode.INTERNAL, f"Save failed: {str(e)}")
             
-            # Simulate inference (replace with actual model)
+            # Measure actual inference time
+            start_time = time.time()
+            
+            # Simulate YOLO inference (replace with actual model)
+            # Simulating ~50ms for YOLOv8 nano on Jetson
+            time.sleep(0.050)  # 50ms simulated inference
+            detections = [
+                {"class": "person", "confidence": 0.95},
+                {"class": "hand", "confidence": 0.87}
+            ]
+            
+            inference_time_ms = int((time.time() - start_time) * 1000)
+            server_send_time = int(time.time() * 1000)
+            
             prediction = vision_pb2.Prediction(
                 filename=frame.filename,
                 confidence=0.95,
                 label="exoplanet",
-                inference_time_ms=150
+                inference_time_ms=inference_time_ms,
+                server_receive_time_ms=server_receive_time,
+                server_send_time_ms=server_send_time
             )
+            print(f"Inference: {inference_time_ms}ms - Detections: {len(detections)}")
             yield prediction
     
     def UpdateWeights(self, request, context):

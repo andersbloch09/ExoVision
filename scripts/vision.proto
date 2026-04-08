@@ -19,7 +19,9 @@ message Prediction {
   string filename = 1;
   float confidence = 2;
   string label = 3;
-  int64 inference_time_ms = 4;    // For latency tracking
+  int64 inference_time_ms = 4;    // Server-side inference time
+  int64 server_receive_time_ms = 5;  // Server timestamp when frame received
+  int64 server_send_time_ms = 6;     // Server timestamp when response sent
 }
 
 message WeightUpdate {

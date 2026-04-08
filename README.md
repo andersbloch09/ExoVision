@@ -23,9 +23,11 @@ export DENMARK_HOST=andersarch
 
 ## Generate Code for gRPC
 ```bash
-python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. scripts/vision.proto
+cd scripts
+# -I. includes current directory, --python_out=. outputs generated protobuf code, --grpc_python_out=. outputs gRPC stubs
+python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. vision.proto
+cd ..
 ```
-
 
 ### Run scripts:
 ```bash

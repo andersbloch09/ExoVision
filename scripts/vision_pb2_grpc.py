@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from scripts import vision_pb2 as scripts_dot_vision__pb2
+import vision_pb2 as vision__pb2
 
 
 class VisionModelStub(object):
@@ -16,13 +16,13 @@ class VisionModelStub(object):
         """
         self.StreamInference = channel.stream_stream(
                 '/vision.VisionModel/StreamInference',
-                request_serializer=scripts_dot_vision__pb2.ImageFrame.SerializeToString,
-                response_deserializer=scripts_dot_vision__pb2.Prediction.FromString,
+                request_serializer=vision__pb2.ImageFrame.SerializeToString,
+                response_deserializer=vision__pb2.Prediction.FromString,
                 )
         self.UpdateWeights = channel.unary_unary(
                 '/vision.VisionModel/UpdateWeights',
-                request_serializer=scripts_dot_vision__pb2.WeightUpdate.SerializeToString,
-                response_deserializer=scripts_dot_vision__pb2.UpdateResponse.FromString,
+                request_serializer=vision__pb2.WeightUpdate.SerializeToString,
+                response_deserializer=vision__pb2.UpdateResponse.FromString,
                 )
 
 
@@ -48,13 +48,13 @@ def add_VisionModelServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'StreamInference': grpc.stream_stream_rpc_method_handler(
                     servicer.StreamInference,
-                    request_deserializer=scripts_dot_vision__pb2.ImageFrame.FromString,
-                    response_serializer=scripts_dot_vision__pb2.Prediction.SerializeToString,
+                    request_deserializer=vision__pb2.ImageFrame.FromString,
+                    response_serializer=vision__pb2.Prediction.SerializeToString,
             ),
             'UpdateWeights': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateWeights,
-                    request_deserializer=scripts_dot_vision__pb2.WeightUpdate.FromString,
-                    response_serializer=scripts_dot_vision__pb2.UpdateResponse.SerializeToString,
+                    request_deserializer=vision__pb2.WeightUpdate.FromString,
+                    response_serializer=vision__pb2.UpdateResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -78,8 +78,8 @@ class VisionModel(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.stream_stream(request_iterator, target, '/vision.VisionModel/StreamInference',
-            scripts_dot_vision__pb2.ImageFrame.SerializeToString,
-            scripts_dot_vision__pb2.Prediction.FromString,
+            vision__pb2.ImageFrame.SerializeToString,
+            vision__pb2.Prediction.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -95,7 +95,7 @@ class VisionModel(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/vision.VisionModel/UpdateWeights',
-            scripts_dot_vision__pb2.WeightUpdate.SerializeToString,
-            scripts_dot_vision__pb2.UpdateResponse.FromString,
+            vision__pb2.WeightUpdate.SerializeToString,
+            vision__pb2.UpdateResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
