@@ -1,4 +1,10 @@
 # ExoVision
+# Download Tailscale and log in
+bash´´´
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+´´´
+
 ### Build environment on jetson:
 ```bash
 python3.10 -m venv venv
