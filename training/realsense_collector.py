@@ -117,6 +117,54 @@ class InteractiveRealsenseCollector:
         """Get next sample ID for a class."""
         return len(self.dataset_metadata['classes'][class_name])
     
+    def show_live_preview_and_confirm(self):
+        """
+        Show live RGB preview and wait for user confirmation.
+        User can:
+        - Press SPACE to confirm and start capturing
+        - Press ESC to cancel and return to menu
+        """
+        print("📷 Live preview - Adjust camera position")
+        print("   SPACE = Start capture | ESC = Cancel\n")
+        
+        confirmed = False
+        
+        try:
+            while True:
+                frames = self.pipeline.wait_for_frames(timeout_ms=100)
+                color_frame = frames.get_color_frame()
+                
+                if not color_frame:
+                    continue
+                
+                color_image = np.asanyarray(color_frame.get_data())
+                
+                # Display preview with instructions
+                cv2.putText(color_image, 'SPACE = Capture | ESC = Cancel', 
+                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                
+                cv2.imshow('📷 Live Preview', color_image)
+                
+                # Wait for key press
+                key = cv2.waitKey(1) & 0xFF
+                
+                if key == 32:  # SPACE
+                    print("   ✅ Capture confirmed")
+                    confirmed = True
+                    break
+                elif key == 27:  # ESC
+                    print("   ❌ Capture cancelled")
+                    confirmed = False
+                    break
+                    
+        except Exception as e:
+            print(f"   ⚠️  Preview error: {e}")
+        
+        finally:
+            cv2.destroyAllWindows()
+        
+        return confirmed
+    
     def start(self):
         """Start RealSense streaming."""
         try:
@@ -148,6 +196,11 @@ class InteractiveRealsenseCollector:
         sample_id = self._get_next_sample_id(class_name)
         captured_files = []
         capture_time = datetime.now()
+        
+        # Show live preview and wait for confirmation
+        if not self.show_live_preview_and_confirm():
+            print("❌ Capture cancelled by user")
+            return None
         
         print(f"\n📹 Capturing {num_frames} frames for [{class_name}]")
         print("   Let camera stabilize for 1 second...")
