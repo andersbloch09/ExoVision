@@ -1,0 +1,8 @@
+# data/datasets/exovision.yaml
+path: /absolute/path/to/data/processed  # Dataset root
+train: train/images
+val: val/images
+test: test/images
+
+nc: 4  # Number of classes
+names: ['descending_ramp', 'upgoing_ramp', 'stairs', 'flat_floor']  # Class names
