@@ -15,7 +15,7 @@ print("VISUALIZATION CAPABILITY TEST")
 print("="*70)
 
 # Load a sample point cloud
-dataset_path = r'C:\Users\ander\Documents\GitHub\ExoVision\data\raw\realsense_d435\session_20260420_121030\pointcloud\frame_000024.npz'
+dataset_path = r'C:\Users\ander\Documents\GitHub\ExoVision\data\raw\realsense_d435\session_20260420_121505\pointcloud\frame_000372.npz'  # Update this path to a valid .npz file in your dataset
 if not os.path.exists(dataset_path):
     print(f"❌ Test data not found: {dataset_path}")
     sys.exit(1)

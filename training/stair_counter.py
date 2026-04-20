@@ -11,8 +11,8 @@ from scipy.signal import find_peaks
 from scipy import ndimage
 
 # Configuration
-STAIRS_DATASET_PATH = r'C:\Users\ander\Documents\GitHub\ExoVision\data\raw\realsense_d435\session_20260420_121030\pointcloud'  # Path to point cloud dataset (directory containing .npz files)
-FRAME_TO_ANALYZE = 24  # Which frame to analyze
+STAIRS_DATASET_PATH = r'C:\Users\ander\Documents\GitHub\ExoVision\data\raw\realsense_d435\session_20260420_121505\pointcloud'  # Path to point cloud dataset (directory containing .npz files)
+FRAME_TO_ANALYZE = 413  # Which frame to analyze
 HEIGHT_BIN_SIZE = 0.01  # 1cm bins for height analysis (m)
 MIN_POINTS_PER_STEP = 500  # Minimum points to count as a step (increased to filter noise)
 PEAK_DISTANCE = 25  # Minimum distance between peaks in histogram bins (tuned)
@@ -28,7 +28,7 @@ def load_point_cloud(npz_file):
         print(f"Error loading {npz_file}: {e}")
         return None
 
-def count_stairs_by_step_edges(points, bin_size=0.01, min_jump=0.1):
+def count_stairs_by_step_edges(points, bin_size=0.01, min_jump=0.1, min_width=0.1):
     """
     Detect stairs by finding step edges (discontinuities in depth as height increases).
     
@@ -38,10 +38,17 @@ def count_stairs_by_step_edges(points, bin_size=0.01, min_jump=0.1):
     3. Look for jumps in Z → these are step risers
     4. Extract stairs from the discontinuities
     
-    Returns: Stair information with rise heights
+    Args:
+        points: Point cloud array (N x 3)
+        bin_size: Height bin size in meters (default 0.01m = 1cm)
+        min_jump: Minimum depth jump threshold (not currently used in filtering)
+        min_width: Minimum X-axis width of stair in meters (default 0.1m = 10cm)
+    
+    Returns: Stair information with rise heights and widths
     """
     y_values = points[:, 1]
     z_values = points[:, 2]
+    x_values = points[:, 0]
     
     y_min, y_max = y_values.min(), y_values.max()
     z_min, z_max = z_values.min(), z_values.max()
@@ -105,7 +112,28 @@ def count_stairs_by_step_edges(points, bin_size=0.01, min_jump=0.1):
             mask = (y_values >= stair_y_min) & (y_values <= stair_y_max)
             num_points = np.sum(mask)
             
-            if num_points > 50 and stair_y_height > 0.05:  # Filter out tiny stairs (less than 5cm)
+            # Calculate X-width of this stair (depth-aware)
+            if num_points > 0:
+                # Get median depth for this stair
+                median_z = np.median(z_values[mask])
+                
+                # Only measure width from points near the median depth (±5cm)
+                depth_tolerance = 0.05
+                z_filter = np.abs(z_values[mask] - median_z) <= depth_tolerance
+                
+                if np.sum(z_filter) > 0:
+                    stair_x_min = x_values[mask][z_filter].min()
+                    stair_x_max = x_values[mask][z_filter].max()
+                    stair_x_width = stair_x_max - stair_x_min
+                else:
+                    # Fallback if no points within tolerance
+                    stair_x_min = x_values[mask].min()
+                    stair_x_max = x_values[mask].max()
+                    stair_x_width = stair_x_max - stair_x_min
+            else:
+                stair_x_width = 0
+            
+            if num_points > 50 and stair_y_height > 0.05 and stair_x_width >= min_width:
                 stair_info.append({
                     'y_height': stair_y_height,
                     'y_min': stair_y_min,
@@ -113,6 +141,9 @@ def count_stairs_by_step_edges(points, bin_size=0.01, min_jump=0.1):
                     'z_at_bottom': stair_z_bottom,
                     'z_at_top': stair_z_top,
                     'z_depth_change': stair_z_top - stair_z_bottom,
+                    'x_width': stair_x_width,
+                    'x_min': stair_x_min,
+                    'x_max': stair_x_max,
                     'point_count': num_points
                 })
             
@@ -217,7 +248,8 @@ def main():
     
     results = count_stairs_by_step_edges(points, 
                                          bin_size=0.01,
-                                         min_jump=0.05)
+                                         min_jump=0.05,
+                                         min_width=0.5)  # Temporarily lower to see detected widths
     
     num_stairs = results['num_stairs']
     stair_info = results['stair_info']
@@ -232,6 +264,7 @@ def main():
             print(f"\n  Stair {i+1}:")
             print(f"    Height range (Y): {stair['y_min']:.4f} to {stair['y_max']:.4f} m")
             print(f"    Rise height: {stair['y_height']:.4f} m ({stair['y_height']*100:.2f} cm)")
+            print(f"    Width (X): {stair['x_width']:.4f} m ({stair['x_width']*100:.2f} cm)")
             print(f"    Depth (Z): {stair['z_at_bottom']:.4f} to {stair['z_at_top']:.4f} m")
             print(f"    Points: {stair['point_count']}")
     
