@@ -5,4 +5,4 @@ val: val/images
 test: test/images
 
 nc: 4  # Number of classes
-names: ['descending_ramp', 'upgoing_ramp', 'stairs', 'flat_floor']  # Class names
+names: ['descending_ramp', 'upgoing_ramp', 'upgoing_stairs', 'descending_stairs', 'flat_floor']  # Class names

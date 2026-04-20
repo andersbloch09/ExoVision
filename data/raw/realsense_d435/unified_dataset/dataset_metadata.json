@@ -1,13 +1,13 @@
 {
   "dataset_name": "unified_dataset",
-  "created": "2026-04-20T00:19:43.119685",
-  "last_updated": "2026-04-20T00:40:26.015867",
+  "created": "2026-04-20T11:45:44.511617",
+  "last_updated": "2026-04-20T11:58:27.393202",
   "classes": {
     "descending_ramp": [
       {
         "sample_id": 0,
         "class": "descending_ramp",
-        "timestamp": "2026-04-20T00:19:58.936812",
+        "timestamp": "2026-04-20T11:58:11.839979",
         "num_frames": 5,
         "camera": "RealSense D435",
         "frames": [
@@ -15,234 +15,356 @@
             "frame_id": 0,
             "color_file": "color\\descending_ramp_000_00.jpg",
             "pointcloud_file": "pointcloud\\descending_ramp_000_00.npz",
-            "num_points": 291874,
+            "num_points": 300872,
             "z_range_m": [
-              0.234,
-              23.997
+              1.122,
+              9.599
             ]
           },
           {
             "frame_id": 1,
             "color_file": "color\\descending_ramp_000_01.jpg",
             "pointcloud_file": "pointcloud\\descending_ramp_000_01.npz",
-            "num_points": 292706,
+            "num_points": 300118,
             "z_range_m": [
-              0.232,
-              14.855
+              0.997,
+              8.547
             ]
           },
           {
             "frame_id": 2,
             "color_file": "color\\descending_ramp_000_02.jpg",
             "pointcloud_file": "pointcloud\\descending_ramp_000_02.npz",
-            "num_points": 292985,
+            "num_points": 301122,
             "z_range_m": [
-              0.231,
-              12.234
+              1.1,
+              8.547
             ]
           },
           {
             "frame_id": 3,
             "color_file": "color\\descending_ramp_000_03.jpg",
             "pointcloud_file": "pointcloud\\descending_ramp_000_03.npz",
-            "num_points": 292904,
+            "num_points": 300800,
             "z_range_m": [
-              0.232,
-              15.998000000000001
+              1.093,
+              7.255
             ]
           },
           {
             "frame_id": 4,
             "color_file": "color\\descending_ramp_000_04.jpg",
             "pointcloud_file": "pointcloud\\descending_ramp_000_04.npz",
-            "num_points": 292721,
+            "num_points": 300990,
             "z_range_m": [
-              0.232,
-              15.217
+              1.098,
+              7.898000000000001
+            ]
+          }
+        ]
+      }
+    ],
+    "upgoing_ramp": [
+      {
+        "sample_id": 0,
+        "class": "upgoing_ramp",
+        "timestamp": "2026-04-20T11:54:40.307619",
+        "num_frames": 5,
+        "camera": "RealSense D435",
+        "frames": [
+          {
+            "frame_id": 0,
+            "color_file": "color\\upgoing_ramp_000_00.jpg",
+            "pointcloud_file": "pointcloud\\upgoing_ramp_000_00.npz",
+            "num_points": 297782,
+            "z_range_m": [
+              1.083,
+              2.589
+            ]
+          },
+          {
+            "frame_id": 1,
+            "color_file": "color\\upgoing_ramp_000_01.jpg",
+            "pointcloud_file": "pointcloud\\upgoing_ramp_000_01.npz",
+            "num_points": 297295,
+            "z_range_m": [
+              1.112,
+              2.137
+            ]
+          },
+          {
+            "frame_id": 2,
+            "color_file": "color\\upgoing_ramp_000_02.jpg",
+            "pointcloud_file": "pointcloud\\upgoing_ramp_000_02.npz",
+            "num_points": 298572,
+            "z_range_m": [
+              1.195,
+              4.216
+            ]
+          },
+          {
+            "frame_id": 3,
+            "color_file": "color\\upgoing_ramp_000_03.jpg",
+            "pointcloud_file": "pointcloud\\upgoing_ramp_000_03.npz",
+            "num_points": 298425,
+            "z_range_m": [
+              1.153,
+              3.974
+            ]
+          },
+          {
+            "frame_id": 4,
+            "color_file": "color\\upgoing_ramp_000_04.jpg",
+            "pointcloud_file": "pointcloud\\upgoing_ramp_000_04.npz",
+            "num_points": 298187,
+            "z_range_m": [
+              1.16,
+              3.2840000000000003
+            ]
+          }
+        ]
+      }
+    ],
+    "upgoing_stairs": [],
+    "descending_stairs": [
+      {
+        "sample_id": 0,
+        "class": "descending_stairs",
+        "timestamp": "2026-04-20T11:45:50.341120",
+        "num_frames": 5,
+        "camera": "RealSense D435",
+        "frames": [
+          {
+            "frame_id": 0,
+            "color_file": "color\\descending_stairs_000_00.jpg",
+            "pointcloud_file": "pointcloud\\descending_stairs_000_00.npz",
+            "num_points": 104307,
+            "z_range_m": [
+              0.156,
+              65.535
+            ]
+          },
+          {
+            "frame_id": 1,
+            "color_file": "color\\descending_stairs_000_01.jpg",
+            "pointcloud_file": "pointcloud\\descending_stairs_000_01.npz",
+            "num_points": 105206,
+            "z_range_m": [
+              0.155,
+              65.535
+            ]
+          },
+          {
+            "frame_id": 2,
+            "color_file": "color\\descending_stairs_000_02.jpg",
+            "pointcloud_file": "pointcloud\\descending_stairs_000_02.npz",
+            "num_points": 106004,
+            "z_range_m": [
+              0.155,
+              65.535
+            ]
+          },
+          {
+            "frame_id": 3,
+            "color_file": "color\\descending_stairs_000_03.jpg",
+            "pointcloud_file": "pointcloud\\descending_stairs_000_03.npz",
+            "num_points": 109541,
+            "z_range_m": [
+              0.155,
+              65.535
+            ]
+          },
+          {
+            "frame_id": 4,
+            "color_file": "color\\descending_stairs_000_04.jpg",
+            "pointcloud_file": "pointcloud\\descending_stairs_000_04.npz",
+            "num_points": 104757,
+            "z_range_m": [
+              0.156,
+              65.535
+            ]
+          }
+        ]
+      }
+    ],
+    "flat_floor": [
+      {
+        "sample_id": 0,
+        "class": "flat_floor",
+        "timestamp": "2026-04-20T11:48:01.347502",
+        "num_frames": 5,
+        "camera": "RealSense D435",
+        "frames": [
+          {
+            "frame_id": 0,
+            "color_file": "color\\flat_floor_000_00.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_000_00.npz",
+            "num_points": 299582,
+            "z_range_m": [
+              1.286,
+              65.535
+            ]
+          },
+          {
+            "frame_id": 1,
+            "color_file": "color\\flat_floor_000_01.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_000_01.npz",
+            "num_points": 300966,
+            "z_range_m": [
+              1.238,
+              65.535
+            ]
+          },
+          {
+            "frame_id": 2,
+            "color_file": "color\\flat_floor_000_02.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_000_02.npz",
+            "num_points": 300573,
+            "z_range_m": [
+              1.2550000000000001,
+              65.535
+            ]
+          },
+          {
+            "frame_id": 3,
+            "color_file": "color\\flat_floor_000_03.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_000_03.npz",
+            "num_points": 301547,
+            "z_range_m": [
+              1.2530000000000001,
+              65.535
+            ]
+          },
+          {
+            "frame_id": 4,
+            "color_file": "color\\flat_floor_000_04.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_000_04.npz",
+            "num_points": 300612,
+            "z_range_m": [
+              1.233,
+              65.535
             ]
           }
         ]
       },
       {
         "sample_id": 1,
-        "class": "descending_ramp",
-        "timestamp": "2026-04-20T00:26:39.069301",
+        "class": "flat_floor",
+        "timestamp": "2026-04-20T11:56:31.634782",
         "num_frames": 5,
         "camera": "RealSense D435",
         "frames": [
           {
             "frame_id": 0,
-            "color_file": "color\\descending_ramp_001_00.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_001_00.npz",
-            "num_points": 290975,
+            "color_file": "color\\flat_floor_001_00.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_001_00.npz",
+            "num_points": 289676,
             "z_range_m": [
-              0.243,
-              6.117
+              0.326,
+              2.985
             ]
           },
           {
             "frame_id": 1,
-            "color_file": "color\\descending_ramp_001_01.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_001_01.npz",
-            "num_points": 290410,
+            "color_file": "color\\flat_floor_001_01.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_001_01.npz",
+            "num_points": 291690,
             "z_range_m": [
-              0.244,
-              6.239
+              0.162,
+              2.875
             ]
           },
           {
             "frame_id": 2,
-            "color_file": "color\\descending_ramp_001_02.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_001_02.npz",
-            "num_points": 290953,
+            "color_file": "color\\flat_floor_001_02.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_001_02.npz",
+            "num_points": 289884,
             "z_range_m": [
-              0.245,
-              6.6370000000000005
+              0.525,
+              2.985
             ]
           },
           {
             "frame_id": 3,
-            "color_file": "color\\descending_ramp_001_03.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_001_03.npz",
-            "num_points": 291024,
+            "color_file": "color\\flat_floor_001_03.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_001_03.npz",
+            "num_points": 288227,
             "z_range_m": [
-              0.244,
-              6.6370000000000005
+              0.157,
+              65.535
             ]
           },
           {
             "frame_id": 4,
-            "color_file": "color\\descending_ramp_001_04.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_001_04.npz",
-            "num_points": 290785,
+            "color_file": "color\\flat_floor_001_04.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_001_04.npz",
+            "num_points": 288014,
             "z_range_m": [
-              0.245,
-              5.942
+              1.155,
+              3.4090000000000003
             ]
           }
         ]
       },
       {
         "sample_id": 2,
-        "class": "descending_ramp",
-        "timestamp": "2026-04-20T00:38:37.756661",
+        "class": "flat_floor",
+        "timestamp": "2026-04-20T11:57:15.118389",
         "num_frames": 5,
         "camera": "RealSense D435",
         "frames": [
           {
             "frame_id": 0,
-            "color_file": "color\\descending_ramp_002_00.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_002_00.npz",
-            "num_points": 291090,
+            "color_file": "color\\flat_floor_002_00.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_002_00.npz",
+            "num_points": 300359,
             "z_range_m": [
-              0.243,
-              5.886
+              1.1360000000000001,
+              5.473
             ]
           },
           {
             "frame_id": 1,
-            "color_file": "color\\descending_ramp_002_01.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_002_01.npz",
-            "num_points": 290904,
+            "color_file": "color\\flat_floor_002_01.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_002_01.npz",
+            "num_points": 298868,
             "z_range_m": [
-              0.243,
-              5.571
+              0.983,
+              3.373
             ]
           },
           {
             "frame_id": 2,
-            "color_file": "color\\descending_ramp_002_02.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_002_02.npz",
-            "num_points": 291094,
+            "color_file": "color\\flat_floor_002_02.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_002_02.npz",
+            "num_points": 299819,
             "z_range_m": [
-              0.243,
-              5.942
+              1.151,
+              5.521
             ]
           },
           {
             "frame_id": 3,
-            "color_file": "color\\descending_ramp_002_03.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_002_03.npz",
-            "num_points": 291373,
+            "color_file": "color\\flat_floor_002_03.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_002_03.npz",
+            "num_points": 298937,
             "z_range_m": [
-              0.243,
-              5.886
+              0.979,
+              3.8040000000000003
             ]
           },
           {
             "frame_id": 4,
-            "color_file": "color\\descending_ramp_002_04.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_002_04.npz",
-            "num_points": 290969,
+            "color_file": "color\\flat_floor_002_04.jpg",
+            "pointcloud_file": "pointcloud\\flat_floor_002_04.npz",
+            "num_points": 299701,
             "z_range_m": [
-              0.243,
-              5.571
-            ]
-          }
-        ]
-      },
-      {
-        "sample_id": 3,
-        "class": "descending_ramp",
-        "timestamp": "2026-04-20T00:39:59.370851",
-        "num_frames": 5,
-        "camera": "RealSense D435",
-        "frames": [
-          {
-            "frame_id": 0,
-            "color_file": "color\\descending_ramp_003_00.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_003_00.npz",
-            "num_points": 282818,
-            "z_range_m": [
-              0.232,
-              5.942
-            ]
-          },
-          {
-            "frame_id": 1,
-            "color_file": "color\\descending_ramp_003_01.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_003_01.npz",
-            "num_points": 282738,
-            "z_range_m": [
-              0.232,
-              6.432
-            ]
-          },
-          {
-            "frame_id": 2,
-            "color_file": "color\\descending_ramp_003_02.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_003_02.npz",
-            "num_points": 282888,
-            "z_range_m": [
-              0.232,
-              5.942
-            ]
-          },
-          {
-            "frame_id": 3,
-            "color_file": "color\\descending_ramp_003_03.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_003_03.npz",
-            "num_points": 282996,
-            "z_range_m": [
-              0.232,
-              6.239
-            ]
-          },
-          {
-            "frame_id": 4,
-            "color_file": "color\\descending_ramp_003_04.jpg",
-            "pointcloud_file": "pointcloud\\descending_ramp_003_04.npz",
-            "num_points": 283132,
-            "z_range_m": [
-              0.232,
-              6.1770000000000005
+              1.147,
+              5.199
             ]
           }
         ]
       }
-    ],
-    "upgoing_ramp": [],
-    "stairs": [],
-    "flat_floor": []
+    ]
   }
 }

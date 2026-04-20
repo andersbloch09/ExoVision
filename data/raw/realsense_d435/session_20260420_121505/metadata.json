@@ -1,0 +1,11 @@
+{
+  "session_name": "20260420_121505",
+  "timestamp": "2026-04-20T12:20:15.145990",
+  "total_frames": 580,
+  "color_dir": "color",
+  "pointcloud_dir": "pointcloud",
+  "camera_model": "RealSense D435",
+  "resolution": "640x480",
+  "fps": 30,
+  "save_interval_seconds": 1.0
+}

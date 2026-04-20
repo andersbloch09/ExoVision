@@ -64,7 +64,8 @@ class InteractiveRealsenseCollector:
         self.class_dirs = {
             'descending_ramp': os.path.join(self.dataset_path, 'descending_ramp'),
             'upgoing_ramp': os.path.join(self.dataset_path, 'upgoing_ramp'),
-            'stairs': os.path.join(self.dataset_path, 'stairs'),
+            'upgoing_stairs': os.path.join(self.dataset_path, 'upgoing_stairs'),
+            'descending_stairs': os.path.join(self.dataset_path, 'decending_stairs'),
             'flat_floor': os.path.join(self.dataset_path, 'flat_floor'),
         }
         
@@ -101,7 +102,8 @@ class InteractiveRealsenseCollector:
             'classes': {
                 'descending_ramp': [],
                 'upgoing_ramp': [],
-                'stairs': [],
+                'upgoing_stairs': [],
+                'descending_stairs': [],
                 'flat_floor': []
             }
         }
@@ -204,7 +206,7 @@ class InteractiveRealsenseCollector:
         
         print(f"\n📹 Capturing {num_frames} frames for [{class_name}]")
         print("   Let camera stabilize for 1 second...")
-        time.sleep(1)
+        time.sleep(4)
         
         # Discard first few frames to let camera stabilize
         for _ in range(5):
@@ -319,7 +321,7 @@ class InteractiveRealsenseCollector:
                 elif cmd == 's':
                     self.show_stats()
                 
-                elif cmd in ['1', '2', '3', '4']:
+                elif cmd in ['1', '2', '3', '4', '5']:
                     class_names = list(self.class_dirs.keys())
                     class_idx = int(cmd) - 1
                     class_name = class_names[class_idx]

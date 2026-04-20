@@ -1,7 +1,8 @@
-Flask==2.2.5
-requests==2.31.0
 python-dotenv==1.0.0
 grpcio==1.60.0
 grpcio-tools==1.60.0
 protobuf==4.25.3
 setuptools<82
+opencv-contrib-python
+pyrealsense2
+numpy<2,>=1.23.2
