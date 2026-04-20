@@ -15,7 +15,7 @@ print("VISUALIZATION CAPABILITY TEST")
 print("="*70)
 
 # Load a sample point cloud
-dataset_path = 'data/raw/realsense_d435/unified_dataset/descending_ramp/pointcloud/descending_ramp_005_03.npz'
+dataset_path = r'C:\Users\ander\Documents\GitHub\ExoVision\data\raw\realsense_d435\session_20260420_121030\pointcloud\frame_000024.npz'
 if not os.path.exists(dataset_path):
     print(f"❌ Test data not found: {dataset_path}")
     sys.exit(1)
