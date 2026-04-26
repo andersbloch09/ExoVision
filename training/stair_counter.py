@@ -12,7 +12,7 @@ from scipy import ndimage
 
 # Configuration
 STAIRS_DATASET_PATH = r'C:\Users\ander\Documents\GitHub\ExoVision\data\raw\realsense_d435\session_20260420_121505\pointcloud'  # Path to point cloud dataset (directory containing .npz files)
-FRAME_TO_ANALYZE = 413  # Which frame to analyze
+FRAME_TO_ANALYZE = 58  # Which frame to analyze
 HEIGHT_BIN_SIZE = 0.01  # 1cm bins for height analysis (m)
 MIN_POINTS_PER_STEP = 500  # Minimum points to count as a step (increased to filter noise)
 PEAK_DISTANCE = 25  # Minimum distance between peaks in histogram bins (tuned)
