@@ -84,3 +84,9 @@ pip install -r requirements.txt
 | **Read-Write Lock** | Fine-grained control | Complex, can block reads | High-concurrency systems |
 
 **Recommendation for Jetson:** Use Atomic Swap - loads new model completely before acquiring lock, then swaps in microseconds. Inference never pauses.
+
+
+**Data collection command:**
+```bash 
+labelImg data\processed\train\images data\processed\train\labels\classes.txt
+```
