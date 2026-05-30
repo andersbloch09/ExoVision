@@ -1,8 +1,27 @@
+# Core dependencies
 python-dotenv==1.0.0
+numpy<2,>=1.23.2
+setuptools<82
+
+# gRPC and protobuf for socket-based communication
 grpcio==1.60.0
 grpcio-tools==1.60.0
 protobuf==4.25.3
-setuptools<82
+
+# Computer vision and image processing
 opencv-contrib-python
+opencv-python
+
+# RealSense camera support
 pyrealsense2
-numpy<2,>=1.23.2
+
+# YOLOv8 for stair detection
+ultralytics>=8.0.0
+torch>=2.0.0
+
+# Numerical and scientific computing
+scipy>=1.10.0
+
+# Visualization
+matplotlib>=3.7.0
+open3d>=0.17.0
