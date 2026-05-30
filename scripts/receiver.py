@@ -3,8 +3,19 @@ from concurrent import futures
 import os
 import time
 from dotenv import load_dotenv
+import numpy as np
+import cv2
+import json
 import vision_pb2
 import vision_pb2_grpc
+from stair_detector import StairDetector
+import threading
+
+try:
+    import open3d as o3d
+except ImportError:
+    o3d = None
+    print("Warning: open3d not installed. Install with: pip install open3d")
 
 load_dotenv()
 
@@ -14,52 +25,200 @@ os.makedirs(DATA_DIR, exist_ok=True)
 class VisionModelService(vision_pb2_grpc.VisionModelServicer):
     def __init__(self):
         self.model_version = "1.0"
-        self.model_path = "models/current_model.pt"
+        self.pointcloud_viz = None
+        self.viz_thread = None
+        
+        try:
+            # Load configuration
+            config_path = os.path.join(
+                os.path.dirname(__file__),
+                "stair_config.json"
+            )
+            
+            print(f"Loading config from: {config_path}")
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            
+            stair_config = config.get('stair_detection', {})
+            viz_config = config.get('visualization', {})
+            self.visualization_enabled = viz_config.get('enabled', False)
+            self.rgb_display = viz_config.get('rgb_display', True)
+            self.pointcloud_display = viz_config.get('pointcloud_display', True)
+            
+            # Build full path to model
+            model_path = os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                stair_config.get('model_path', 'runs/detect/train/weights/best.pt')
+            )
+            
+            print(f"Model path: {model_path}")
+            print(f"Model exists: {os.path.exists(model_path)}")
+            print(f"Visualization: {'enabled' if self.visualization_enabled else 'disabled'}")
+            if self.visualization_enabled:
+                print(f"  RGB display: {'on' if self.rgb_display else 'off'}")
+                print(f"  Point cloud display: {'on' if self.pointcloud_display else 'off'}")
+            
+            if not os.path.exists(model_path):
+                raise FileNotFoundError(f"Model not found at {model_path}")
+            
+            # Initialize stair detector with config values
+            print("Initializing StairDetector...")
+            self.stair_detector = StairDetector(
+                model_path=model_path,
+                distance_min_m=stair_config.get('distance_threshold', {}).get('min_m', 1.0),
+                distance_max_m=stair_config.get('distance_threshold', {}).get('max_m', 3.0),
+                confidence_threshold=stair_config.get('confidence_threshold', 0.5)
+            )
+            print("✓ StairDetector initialized successfully!")
+        
+        except Exception as e:
+            print(f"✗ Error initializing VisionModelService: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+    
+    def visualize_pointcloud(self, pointcloud, bbox=None, stair_type=None):
+        """Visualize point cloud with optional bounding box."""
+        if not self.pointcloud_display or o3d is None:
+            return
+        
+        if len(pointcloud) == 0:
+            return
+        
+        try:
+            # Create point cloud
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(pointcloud)
+            
+            # Color by height (Y-axis) for step visualization
+            colors = np.zeros_like(pointcloud)
+            if len(pointcloud) > 0:
+                y_min, y_max = pointcloud[:, 1].min(), pointcloud[:, 1].max()
+                y_range = y_max - y_min if y_max > y_min else 1.0
+                # Red to green gradient by height
+                normalized_y = (pointcloud[:, 1] - y_min) / y_range
+                colors[:, 0] = 1 - normalized_y  # Red decreases
+                colors[:, 1] = normalized_y      # Green increases
+            
+            pcd.colors = o3d.utility.Vector3dVector(colors)
+            
+            # Create or update visualizer
+            if self.pointcloud_viz is None:
+                self.pointcloud_viz = o3d.visualization.Visualizer()
+                self.pointcloud_viz.create_window(window_name="Point Cloud Stream")
+                self.pointcloud_viz.add_geometry(pcd)
+            else:
+                self.pointcloud_viz.clear_geometries()
+                self.pointcloud_viz.add_geometry(pcd)
+            
+            # Update camera view
+            self.pointcloud_viz.poll_events()
+            self.pointcloud_viz.update_renderer()
+            
+        except Exception as e:
+            print(f"Warning: Point cloud visualization error: {e}")
     
     def StreamInference(self, request_iterator, context):
         """
-        Receive image frames and send back predictions.
+        Receive RGB image frames and point clouds, return stair detections.
         Bidirectional streaming for continuous inference.
         """
         for frame in request_iterator:
-            server_receive_time = int(time.time() * 1000)  # Timestamp when received
+            start_inference_time = time.time()
             
-            # Save received image
-            file_path = os.path.join(
-                DATA_DIR, 
-                f"{int(time.time())}_{frame.filename}"
-            )
             try:
-                with open(file_path, "wb") as f:
-                    f.write(frame.image_data)
-                print(f"Saved image: {file_path}")
+                # Deserialize RGB image
+                nparr = np.frombuffer(frame.image_data, np.uint8)
+                rgb_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                
+                if rgb_image is None:
+                    context.abort(grpc.StatusCode.INTERNAL, "Failed to decode image")
+                
+                # Deserialize point cloud
+                pointcloud = None
+                if frame.pointcloud_data:
+                    try:
+                        pointcloud = np.frombuffer(
+                            frame.pointcloud_data, 
+                            dtype=np.float32
+                        ).reshape(-1, 3)
+                    except Exception as e:
+                        print(f"Warning: Failed to deserialize point cloud: {e}")
+                        pointcloud = np.array([])
+                
+                # Run stair detection
+                if pointcloud is not None and len(pointcloud) > 0:
+                    detection = self.stair_detector.detect_stairs(
+                        rgb_image, 
+                        pointcloud
+                    )
+                else:
+                    # No point cloud, return no detection
+                    detection = {
+                        'stair_type': 'none',
+                        'confidence': 0.0,
+                        'distance_m': -1,
+                        'bbox': None
+                    }
+                
+                # Calculate inference time
+                inference_time_ms = int((time.time() - start_inference_time) * 1000)
+                
+                # Visualization with bounding boxes
+                if self.visualization_enabled:
+                    # RGB visualization
+                    if self.rgb_display:
+                        display_image = rgb_image.copy()
+                        
+                        # Draw bounding box if detection found
+                        if detection['bbox'] is not None:
+                            x1, y1, x2, y2 = detection['bbox']
+                            # Color based on stair type
+                            if detection['stair_type'] == 'ascending_stairs':
+                                color = (0, 255, 0)  # Green
+                            elif detection['stair_type'] == 'descending_stairs':
+                                color = (0, 165, 255)  # Orange
+                            else:
+                                color = (0, 0, 255)  # Red
+                            
+                            cv2.rectangle(display_image, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
+                        
+                        # Add detection info text
+                        text = f"{detection['stair_type']} ({detection['confidence']:.2f})"
+                        cv2.putText(display_image, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                        
+                        if detection['distance_m'] > 0:
+                            dist_text = f"Distance: {detection['distance_m']:.2f}m"
+                            cv2.putText(display_image, dist_text, (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+                        
+                        # Display
+                        cv2.imshow('Incoming Stream', display_image)
+                        cv2.waitKey(1)
+                    
+                    # Point cloud visualization (runs in same thread, non-blocking)
+                    if self.pointcloud_display and pointcloud is not None and len(pointcloud) > 0:
+                        self.visualize_pointcloud(pointcloud, bbox=detection['bbox'], stair_type=detection['stair_type'])
+                
+                # Create prediction response
+                prediction = vision_pb2.Prediction(
+                    filename=frame.filename,
+                    stair_type=detection['stair_type'],
+                    confidence=detection['confidence'],
+                    distance_m=detection['distance_m'],
+                    inference_time_ms=inference_time_ms
+                )
+                
+                print(f"Detection: {detection['stair_type']}, "
+                      f"Distance: {detection['distance_m']:.2f}m, "
+                      f"Confidence: {detection['confidence']:.3f}, "
+                      f"Time: {inference_time_ms}ms")
+                
+                yield prediction
+                
             except Exception as e:
-                context.abort(grpc.StatusCode.INTERNAL, f"Save failed: {str(e)}")
-            
-            # Measure actual inference time
-            start_time = time.time()
-            
-            # Simulate YOLO inference (replace with actual model)
-            # Simulating ~50ms for YOLOv8 nano on Jetson
-            time.sleep(0.050)  # 50ms simulated inference
-            detections = [
-                {"class": "person", "confidence": 0.95},
-                {"class": "hand", "confidence": 0.87}
-            ]
-            
-            inference_time_ms = int((time.time() - start_time) * 1000)
-            server_send_time = int(time.time() * 1000)
-            
-            prediction = vision_pb2.Prediction(
-                filename=frame.filename,
-                confidence=0.95,
-                label="exoplanet",
-                inference_time_ms=inference_time_ms,
-                server_receive_time_ms=server_receive_time,
-                server_send_time_ms=server_send_time
-            )
-            print(f"Inference: {inference_time_ms}ms - Detections: {len(detections)}")
-            yield prediction
+                print(f"Error processing frame: {e}")
+                context.abort(grpc.StatusCode.INTERNAL, str(e))
     
     def UpdateWeights(self, request, context):
         """Receive and apply model weight updates."""
@@ -81,11 +240,22 @@ class VisionModelService(vision_pb2_grpc.VisionModelServicer):
 
 def receive_and_respond():
     """Start gRPC server."""
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    vision_pb2_grpc.add_VisionModelServicer_to_server(
-        VisionModelService(), server
-    )
-    server.add_insecure_port("[::]:50051")
-    print("gRPC server listening on port 50051...")
-    server.start()
-    server.wait_for_termination()
+    print("Starting gRPC server initialization...")
+    try:
+        service = VisionModelService()
+        print("✓ VisionModelService created successfully")
+        
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        vision_pb2_grpc.add_VisionModelServicer_to_server(service, server)
+        server.add_insecure_port("[::]:50051")
+        print("gRPC server listening on port 50051...")
+        server.start()
+        server.wait_for_termination()
+    except Exception as e:
+        print(f"✗ Error starting gRPC server: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+if __name__ == "__main__":
+    receive_and_respond()
