@@ -1,6 +1,6 @@
 {
   "stair_detection": {
-    "model_path": "runs/detect/train/weights/best.pt",
+    "model_path": "runs/detect/train-3/weights/best.pt",
     "distance_threshold": {
       "min_m": 1.0,
       "max_m": 3.0,
