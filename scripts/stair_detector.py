@@ -1,19 +1,12 @@
-"""
-Stair detection module using YOLOv8 and RealSense point cloud data.
-Detects stairs in RGB images and calculates distance to first step from point cloud.
-"""
-
 import cv2
 import numpy as np
 from ultralytics import YOLO
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
-import os
-
 
 class StairDetector:
     """
-    Detect stairs in RGB images and calculate distance from point cloud.
+    Detect stairs in RGB images and calculate distance from point cloud regions.
     """
     
     def __init__(self, model_path: str, 
@@ -22,12 +15,6 @@ class StairDetector:
                  confidence_threshold: float = 0.5):
         """
         Initialize stair detector.
-        
-        Args:
-            model_path: Path to trained YOLO model weights
-            distance_min_m: Minimum distance to alert (meters)
-            distance_max_m: Maximum distance to alert (meters)
-            confidence_threshold: YOLO confidence threshold (0-1)
         """
         self.model = YOLO(model_path)
         self.distance_min = distance_min_m
@@ -42,27 +29,15 @@ class StairDetector:
         }
     
     def detect_stairs(self, rgb_image: np.ndarray, 
-                     pointcloud: np.ndarray) -> dict:
+                     depth_image: np.ndarray,
+                     camera_intrinsics: dict) -> dict:
         """
-        Detect stairs in RGB image and calculate distance from point cloud.
-        
-        Args:
-            rgb_image: RGB image array (H x W x 3)
-            pointcloud: Point cloud array (N x 3) where each row is [x, y, z]
-        
-        Returns:
-            dict with keys:
-                - stair_type: "ascending_stairs", "descending_stairs", "flat_ground", or "none"
-                - confidence: float (0-1)
-                - distance_m: float or -1 if not applicable
-                - bbox: [x1, y1, x2, y2] bounding box or None
+        Detect stairs in RGB image and calculate distance using isolated depth regions.
         """
-        
         # Run YOLO inference
         results = self.model(rgb_image, conf=self.confidence_threshold, verbose=False)
         
         if len(results) == 0 or len(results[0].boxes) == 0:
-            # No detections
             return {
                 'stair_type': 'none',
                 'confidence': 0.0,
@@ -86,9 +61,15 @@ class StairDetector:
         # Calculate distance only for ascending stairs
         distance = -1
         if stair_type == "ascending_stairs":
-            distance = self._calculate_distance_to_first_step(
-                pointcloud, bbox, rgb_image.shape
-            )
+            # Isolate matrix array crop and project only the pixels within the box boundary
+            pointcloud = self._generate_bbox_pointcloud(depth_image, bbox, camera_intrinsics)
+            
+            if pointcloud is not None and len(pointcloud) > 50:
+                distance = self._detect_step_distance(pointcloud)
+            
+            # Sanity filter
+            if distance < 0 or distance > 10:
+                distance = -1
         
         return {
             'stair_type': stair_type,
@@ -97,123 +78,157 @@ class StairDetector:
             'bbox': bbox
         }
     
-    def _calculate_distance_to_first_step(self, pointcloud: np.ndarray,
-                                         bbox: list, 
-                                         image_shape: tuple) -> float:
+    def _generate_bbox_pointcloud(
+        self,
+        depth_img: np.ndarray,
+        bbox: list,
+        intrinsics: dict
+    ) -> np.ndarray:
         """
-        Calculate distance to first step from point cloud region.
-        
-        Args:
-            pointcloud: Point cloud (N x 3) in world coordinates [x, y, z]
-            bbox: Bounding box [x1, y1, x2, y2] in image coordinates
-            image_shape: RGB image shape (height, width, ...)
-        
-        Returns:
-            Distance in meters, or -1 if calculation fails
-        """ 
+        Generates a 3D point cloud ONLY for pixels inside the YOLO bounding box.
+        All coordinates are kept in full-image space (consistent projection).
+        """
+
         try:
-            if len(pointcloud) < 50:
-                print(f"Insufficient points in cloud: {len(pointcloud)} < 50")
-                return -1
-            
-            # Use the entire point cloud (already represents the stair region)
-            # Don't try to filter by bbox since point cloud is in world coords
-            cropped_pc = pointcloud
-            
-            print(f"Using {len(cropped_pc)} points for step detection")
-            print(f"Point cloud ranges - X: [{cropped_pc[:, 0].min():.3f}, {cropped_pc[:, 0].max():.3f}], "
-                  f"Y: [{cropped_pc[:, 1].min():.3f}, {cropped_pc[:, 1].max():.3f}], "
-                  f"Z: [{cropped_pc[:, 2].min():.3f}, {cropped_pc[:, 2].max():.3f}]")
-            
-            # Detect first step using depth discontinuities
-            distance = self._detect_step_distance(cropped_pc)
-            
-            print(f"Detected distance: {distance:.3f}m")
-            
-            return distance
-                
+            x1, y1, x2, y2 = bbox
+
+            h_img, w_img = depth_img.shape[:2]
+
+            # Clip bbox safely
+            x1 = max(0, min(w_img - 1, x1))
+            x2 = max(0, min(w_img, x2))
+            y1 = max(0, min(h_img - 1, y1))
+            y2 = max(0, min(h_img, y2))
+
+            if x2 <= x1 or y2 <= y1:
+                return None
+
+            # Intrinsics
+            fx = intrinsics.get('fx', 500.0)
+            fy = intrinsics.get('fy', 500.0)
+            cx = intrinsics.get('cx', w_img / 2.0)
+            cy = intrinsics.get('cy', h_img / 2.0)
+            depth_scale = intrinsics.get('scale', 0.001)
+
+            # -----------------------------
+            # Step 1: extract ROI depth
+            # -----------------------------
+            roi = depth_img[y1:y2:2, x1:x2:2].astype(np.float32)
+            roi_depth = roi * depth_scale
+
+            if roi_depth.size == 0:
+                return None
+
+            # -----------------------------
+            # Step 2: build FULL-FRAME pixel coordinates (IMPORTANT FIX)
+            # -----------------------------
+            ys, xs = np.mgrid[y1:y2:2, x1:x2:2]
+
+            # Flatten everything
+            z = roi_depth.reshape(-1)
+            x_pix = xs.reshape(-1)
+            y_pix = ys.reshape(-1)
+
+            # -----------------------------
+            # Step 3: valid depth filtering
+            # -----------------------------
+            valid = (z > 0) & (z < 10)
+
+            if np.sum(valid) < 50:
+                return None
+
+            z = z[valid]
+            x_pix = x_pix[valid]
+            y_pix = y_pix[valid]
+
+            # -----------------------------
+            # Step 4: correct projection (consistent frame)
+            # -----------------------------
+            x = (x_pix - cx) * z / fx
+            y = (y_pix - cy) * z / fy
+
+            return np.stack((x, y, z), axis=-1)
+
         except Exception as e:
-            print(f"Error calculating distance: {e}")
-            import traceback
-            traceback.print_exc()
-            return -1
-    
+            print(f"Error generating bbox point cloud: {e}")
+            return None    
     def _detect_step_distance(self, cropped_pointcloud: np.ndarray) -> float:
         """
-        Detect distance to first step by analyzing depth changes.
-        
-        Simplified version for ascending stairs - finds the closest step edge
-        by analyzing depth discontinuities in the Y-axis (height).
-        
-        Args:
-            cropped_pointcloud: Point cloud cropped to stair region (N x 3)
-        
-        Returns:
-            Distance in meters (Z-axis), or -1 if not found
+        Robust stair detection using height-binned depth profile + stable step transitions.
         """
         try:
-            if len(cropped_pointcloud) < 50:
-                print(f"Too few points: {len(cropped_pointcloud)}")
+            if len(cropped_pointcloud) < 100:
                 return -1
-            
-            y_values = cropped_pointcloud[:, 1]  # Height
-            z_values = cropped_pointcloud[:, 2]  # Depth/distance
-            
-            y_min, y_max = y_values.min(), y_values.max()
-            z_min, z_max = z_values.min(), z_values.max()
-            
-            print(f"Y range: [{y_min:.3f}, {y_max:.3f}], Z range: [{z_min:.3f}, {z_max:.3f}]")
-            
-            # Bin by height
+
+            y = cropped_pointcloud[:, 1]  # height
+            z = cropped_pointcloud[:, 2]  # depth
+
+            # Clean invalid depth
+            valid_mask = (z > 0) & (z < 10)
+            y = y[valid_mask]
+            z = z[valid_mask]
+
+            if len(z) < 100:
+                return -1
+
+            # Height binning
             bin_size = 0.01  # 1cm
-            num_bins = int((y_max - y_min) / bin_size) + 1
-            if num_bins < 3:
-                print(f"Too few bins: {num_bins}")
-                # Fallback: return median depth
-                return np.median(z_values[z_values > 0]) if np.any(z_values > 0) else -1
-            
-            y_bins = np.linspace(y_min, y_max, num_bins)
-            z_at_height = []
-            
-            for i in range(len(y_bins) - 1):
-                mask = (y_values >= y_bins[i]) & (y_values < y_bins[i+1])
-                if np.sum(mask) > 0:
-                    z_at_height.append(np.median(z_values[mask]))
+            y_min, y_max = np.min(y), np.max(y)
+
+            if y_max - y_min < 0.1:
+                # Not enough vertical structure variation
+                return float(np.median(z))
+
+            bins = np.arange(y_min, y_max + bin_size, bin_size)
+
+            z_profile = []
+            for i in range(len(bins) - 1):
+                mask = (y >= bins[i]) & (y < bins[i + 1])
+                if np.sum(mask) > 30:  # Reject sparse depth dropouts
+                    z_profile.append(np.median(z[mask]))
                 else:
-                    z_at_height.append(np.nan)
-            
-            z_at_height = np.array(z_at_height)
-            
-            # Find discontinuities (step edges)
-            z_diffs = np.diff(z_at_height)
-            z_diffs_smooth = gaussian_filter1d(np.nan_to_num(z_diffs), sigma=0.5)
-            
-            # Find peaks (depth increases = step edge)
-            edges, properties = find_peaks(z_diffs_smooth, height=0.005, distance=2)
-            
-            print(f"Found {len(edges)} depth discontinuities")
-            
+                    z_profile.append(np.nan)
+
+            z_profile = np.array(z_profile)
+
+            # Interpolate missing profile values
+            valid = ~np.isnan(z_profile)
+            if np.sum(valid) < 5:
+                return float(np.median(z))
+
+            z_profile = np.interp(
+                np.arange(len(z_profile)),
+                np.where(valid)[0],
+                z_profile[valid]
+            )
+
+            # Smooth noise out
+            z_profile = gaussian_filter1d(z_profile, sigma=1.0)
+
+            # Compute depth gradient
+            dz = np.diff(z_profile)
+            dz = gaussian_filter1d(dz, sigma=1.0)
+
+            # Detect dynamic stable peaks
+            thresh = np.std(dz) * 0.8
+            edges, _ = find_peaks(dz, height=thresh, distance=3)
+
+            # Identify structural jump boundaries
             if len(edges) > 0:
-                # Distance to first step is the depth at the first edge
-                first_step_idx = edges[0]
-                distance_to_step = z_at_height[first_step_idx]
-                
-                if distance_to_step > 0:
-                    print(f"First step detected at index {first_step_idx}: {distance_to_step:.3f}m")
-                    return distance_to_step
-            
-            # Fallback: return median depth (closest surface)
-            valid_z = z_values[z_values > 0]
-            if len(valid_z) > 0:
-                closest = np.percentile(valid_z, 10)  # 10th percentile = closest 10%
-                print(f"No edge detected, using 10th percentile depth: {closest:.3f}m")
-                return closest
-            
-            print("No valid depth values found")
-            return -1
-            
+                for idx in edges:
+                    if idx < 2 or idx >= len(z_profile) - 2:
+                        continue
+
+                    pre = np.mean(z_profile[max(0, idx-3):idx])
+                    post = np.mean(z_profile[idx:idx+3])
+                    jump = post - pre
+
+                    if jump > 0.05:  # 5cm minimum real step transition
+                        return float(pre)
+
+            # Fallback: closest target surface point
+            return float(np.percentile(z, 10))
+
         except Exception as e:
-            print(f"Error detecting step distance: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"Step detection error: {e}")
             return -1
