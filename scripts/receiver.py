@@ -135,16 +135,57 @@ class VisionModelService(vision_pb2_grpc.VisionModelServicer):
                 if rgb_image is None:
                     context.abort(grpc.StatusCode.INTERNAL, "Failed to decode image")
                 
-                # Deserialize point cloud
+                # Deserialize point cloud (actually depth image from ROS)
                 pointcloud = None
                 if frame.pointcloud_data:
                     try:
-                        pointcloud = np.frombuffer(
-                            frame.pointcloud_data, 
-                            dtype=np.float32
-                        ).reshape(-1, 3)
+                        # Decode PNG depth image from ROS
+                        depth_img = cv2.imdecode(
+                            np.frombuffer(frame.pointcloud_data, np.uint8),
+                            cv2.IMREAD_UNCHANGED
+                        )
+                        
+                        if depth_img is None:
+                            print(f"Warning: Failed to decode depth image")
+                            pointcloud = np.array([])
+                        else:
+                            print(f"✓ Decoded depth image: {depth_img.shape}, dtype: {depth_img.dtype}")
+                            
+                            # Convert depth image to point cloud using camera intrinsics
+                            # Assuming Orbbec ASTRA S approximate intrinsics
+                            fx = 500.0   # Focal length x
+                            fy = 500.0   # Focal length y
+                            cx = depth_img.shape[1] / 2.0  # Principal point x
+                            cy = depth_img.shape[0] / 2.0  # Principal point y
+                            depth_scale = 0.001  # Typically 1mm = 0.001m for depth images
+                            
+                            h, w = depth_img.shape
+                            points = []
+                            
+                            for y in range(0, h, 2):  # Sample every 2 pixels
+                                for x in range(0, w, 2):
+                                    depth = depth_img[y, x] * depth_scale
+                                    
+                                    if depth == 0 or depth > 10:  # Skip invalid/too far
+                                        continue
+                                    
+                                    # Convert to 3D point using intrinsics
+                                    x_3d = (x - cx) * depth / fx
+                                    y_3d = (y - cy) * depth / fy
+                                    
+                                    points.append([x_3d, y_3d, depth])
+                            
+                            if len(points) > 0:
+                                pointcloud = np.array(points, dtype=np.float32)
+                                print(f"✓ Generated point cloud: {len(pointcloud)} points")
+                            else:
+                                print(f"Warning: No valid depth points generated")
+                                pointcloud = np.array([])
+                                
                     except Exception as e:
                         print(f"Warning: Failed to deserialize point cloud: {e}")
+                        import traceback
+                        traceback.print_exc()
                         pointcloud = np.array([])
                 
                 # Run stair detection

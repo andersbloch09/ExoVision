@@ -104,53 +104,38 @@ class StairDetector:
         Calculate distance to first step from point cloud region.
         
         Args:
-            pointcloud: Point cloud (N x 3)
+            pointcloud: Point cloud (N x 3) in world coordinates [x, y, z]
             bbox: Bounding box [x1, y1, x2, y2] in image coordinates
             image_shape: RGB image shape (height, width, ...)
         
         Returns:
             Distance in meters, or -1 if calculation fails
-        """
+        """ 
         try:
-            x1, y1, x2, y2 = bbox
-            img_h, img_w = image_shape[:2]
-            
-            # Normalize bbox to 0-1 range
-            x1_norm = x1 / img_w
-            y1_norm = y1 / img_h
-            x2_norm = x2 / img_w
-            y2_norm = y2 / img_h
-            
-            # Filter points in bbox region
-            # Assuming pointcloud is in normalized camera coordinates (-1 to 1 or 0 to 1)
-            # Adjust if your pointcloud uses different coordinate system
-            pc_x = pointcloud[:, 0]
-            pc_y = pointcloud[:, 1]
-            pc_z = pointcloud[:, 2]  # Depth/distance
-            
-            # Create mask for points in bbox
-            mask = (
-                (pc_x >= x1_norm) & (pc_x <= x2_norm) &
-                (pc_y >= y1_norm) & (pc_y <= y2_norm)
-            )
-            
-            if np.sum(mask) < 50:
-                # Too few points in region
+            if len(pointcloud) < 50:
+                print(f"Insufficient points in cloud: {len(pointcloud)} < 50")
                 return -1
             
-            cropped_pc = pointcloud[mask]
+            # Use the entire point cloud (already represents the stair region)
+            # Don't try to filter by bbox since point cloud is in world coords
+            cropped_pc = pointcloud
+            
+            print(f"Using {len(cropped_pc)} points for step detection")
+            print(f"Point cloud ranges - X: [{cropped_pc[:, 0].min():.3f}, {cropped_pc[:, 0].max():.3f}], "
+                  f"Y: [{cropped_pc[:, 1].min():.3f}, {cropped_pc[:, 1].max():.3f}], "
+                  f"Z: [{cropped_pc[:, 2].min():.3f}, {cropped_pc[:, 2].max():.3f}]")
             
             # Detect first step using depth discontinuities
             distance = self._detect_step_distance(cropped_pc)
             
-            # Apply distance threshold
-            if self.distance_min <= distance <= self.distance_max:
-                return distance
-            else:
-                return -1
+            print(f"Detected distance: {distance:.3f}m")
+            
+            return distance
                 
         except Exception as e:
             print(f"Error calculating distance: {e}")
+            import traceback
+            traceback.print_exc()
             return -1
     
     def _detect_step_distance(self, cropped_pointcloud: np.ndarray) -> float:
@@ -168,6 +153,7 @@ class StairDetector:
         """
         try:
             if len(cropped_pointcloud) < 50:
+                print(f"Too few points: {len(cropped_pointcloud)}")
                 return -1
             
             y_values = cropped_pointcloud[:, 1]  # Height
@@ -176,11 +162,15 @@ class StairDetector:
             y_min, y_max = y_values.min(), y_values.max()
             z_min, z_max = z_values.min(), z_values.max()
             
+            print(f"Y range: [{y_min:.3f}, {y_max:.3f}], Z range: [{z_min:.3f}, {z_max:.3f}]")
+            
             # Bin by height
             bin_size = 0.01  # 1cm
             num_bins = int((y_max - y_min) / bin_size) + 1
             if num_bins < 3:
-                return -1
+                print(f"Too few bins: {num_bins}")
+                # Fallback: return median depth
+                return np.median(z_values[z_values > 0]) if np.any(z_values > 0) else -1
             
             y_bins = np.linspace(y_min, y_max, num_bins)
             z_at_height = []
@@ -199,7 +189,9 @@ class StairDetector:
             z_diffs_smooth = gaussian_filter1d(np.nan_to_num(z_diffs), sigma=0.5)
             
             # Find peaks (depth increases = step edge)
-            edges, _ = find_peaks(z_diffs_smooth, height=0.005, distance=2)
+            edges, properties = find_peaks(z_diffs_smooth, height=0.005, distance=2)
+            
+            print(f"Found {len(edges)} depth discontinuities")
             
             if len(edges) > 0:
                 # Distance to first step is the depth at the first edge
@@ -207,15 +199,21 @@ class StairDetector:
                 distance_to_step = z_at_height[first_step_idx]
                 
                 if distance_to_step > 0:
+                    print(f"First step detected at index {first_step_idx}: {distance_to_step:.3f}m")
                     return distance_to_step
             
-            # Fallback: return median depth of closest 10% points
-            closest_points = np.percentile(z_values, 10)
-            if closest_points > 0:
-                return closest_points
+            # Fallback: return median depth (closest surface)
+            valid_z = z_values[z_values > 0]
+            if len(valid_z) > 0:
+                closest = np.percentile(valid_z, 10)  # 10th percentile = closest 10%
+                print(f"No edge detected, using 10th percentile depth: {closest:.3f}m")
+                return closest
             
+            print("No valid depth values found")
             return -1
             
         except Exception as e:
             print(f"Error detecting step distance: {e}")
+            import traceback
+            traceback.print_exc()
             return -1
