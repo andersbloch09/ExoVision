@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package vision;
+
+service VisionModel {
+  // Send image frame for inference, receive prediction
+  rpc StreamInference(stream ImageFrame) returns (stream Prediction);
+  // Update model weights on receiver
+  rpc UpdateWeights(WeightUpdate) returns (UpdateResponse);
+}
+
+message ImageFrame {
+  bytes image_data = 1;           // Serialized RGB image bytes
+  bytes pointcloud_data = 2;      // Serialized point cloud (numpy array or packed floats)
+  string filename = 3;
+  int64 timestamp = 4;            // Unix timestamp in milliseconds
+}
+
+message Prediction {
+  string filename = 1;
+  string stair_type = 2;          // "ascending_stairs", "descending_stairs", "flat_ground", or "none"
+  float confidence = 3;           // Detection confidence (0-1)
+  float distance_m = 4;           // Distance to first step in meters (-1 if not applicable)
+  int64 inference_time_ms = 5;    // Total inference time in milliseconds
+}
+
+message WeightUpdate {
+  bytes model_weights = 1;        // Serialized model
+  string version = 2;
+  int64 timestamp = 3;
+}
+
+message UpdateResponse {
+  string status = 1;              // "success" or "error"
+  string message = 2;
+}

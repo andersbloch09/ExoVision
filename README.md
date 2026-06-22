@@ -1,9 +1,16 @@
 # ExoVision
-### Build environment:
+# Download Tailscale and log in
+bash´´´
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+´´´
+
+### Build environment on jetson:
 ```bash
 python3.10 -m venv venv
 source venv/bin/activate
-pip3.10 install -r requirements.txt
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
 ```
 ### Export variables:
 Create a .env file in the outer directory and fill the information
@@ -20,6 +27,13 @@ export ROLE=sender
 export DENMARK_HOST=andersarch
 ```
 
+## Generate Code for gRPC
+```bash
+cd scripts
+# -I. includes current directory, --python_out=. outputs generated protobuf code, --grpc_python_out=. outputs gRPC stubs
+python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. vision.proto
+cd ..
+```
 
 ### Run scripts:
 ```bash
@@ -70,3 +84,9 @@ pip install -r requirements.txt
 | **Read-Write Lock** | Fine-grained control | Complex, can block reads | High-concurrency systems |
 
 **Recommendation for Jetson:** Use Atomic Swap - loads new model completely before acquiring lock, then swaps in microseconds. Inference never pauses.
+
+
+**Data collection command:**
+```bash 
+labelImg data\processed\train\images data\processed\train\labels\classes.txt
+```

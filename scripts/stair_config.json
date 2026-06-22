@@ -1,0 +1,21 @@
+{
+  "stair_detection": {
+    "model_path": "runs/detect/train-3/weights/best.pt",
+    "distance_threshold": {
+      "min_m": 1.0,
+      "max_m": 3.0,
+      "description": "Alert only if stairs detected within this distance range (meters)"
+    },
+    "confidence_threshold": 0.5,
+    "enabled_stair_types": [
+      "ascending_stairs"
+    ],
+    "description": "Only calculate distance for ascending stairs. Other types return type but distance=-1"
+  },
+  "visualization": {
+    "enabled": true,
+    "rgb_display": true,
+    "pointcloud_display": false,
+    "description": "Enable live visualization of incoming frames with bounding boxes"
+  }
+}
