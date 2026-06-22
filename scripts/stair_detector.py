@@ -152,6 +152,8 @@ class StairDetector:
         except Exception as e:
             print(f"Error generating bbox point cloud: {e}")
             return None    
+        
+        
     def _detect_step_distance(self, cropped_pointcloud: np.ndarray) -> float:
         """
         Robust stair detection using height-binned depth profile + stable step transitions.
@@ -210,11 +212,14 @@ class StairDetector:
             dz = gaussian_filter1d(dz, sigma=1.0)
 
             # Detect dynamic stable peaks
-            thresh = np.std(dz) * 0.8
+            thresh = max(np.std(dz) * 0.8, 0.01)  # Added 1cm safety floor threshold
             edges, _ = find_peaks(dz, height=thresh, distance=3)
 
             # Identify structural jump boundaries
             if len(edges) > 0:
+                verified_steps = []
+                
+                # 1. Scan all peaks first to verify how many are actual steps
                 for idx in edges:
                     if idx < 2 or idx >= len(z_profile) - 2:
                         continue
@@ -224,7 +229,14 @@ class StairDetector:
                     jump = post - pre
 
                     if jump > 0.05:  # 5cm minimum real step transition
-                        return float(pre)
+                        verified_steps.append(pre)
+
+                # 2. Print the final count to the terminal if steps were found
+                if len(verified_steps) > 0:
+                    print(f"🪜 Visible steps counted in terminal: {len(verified_steps)}")
+                    
+                    # 3. Return ONLY the distance to the first step (matching your original code)
+                    return float(verified_steps[0])
 
             # Fallback: closest target surface point
             return float(np.percentile(z, 10))
