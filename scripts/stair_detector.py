@@ -10,15 +10,11 @@ class StairDetector:
     """
     
     def __init__(self, model_path: str, 
-                 distance_min_m: float = 1.0,
-                 distance_max_m: float = 3.0,
                  confidence_threshold: float = 0.5):
         """
         Initialize stair detector.
         """
         self.model = YOLO(model_path)
-        self.distance_min = distance_min_m
-        self.distance_max = distance_max_m
         self.confidence_threshold = confidence_threshold
         
         # Class names mapping

@@ -51,8 +51,6 @@ class VisionModelService(vision_pb2_grpc.VisionModelServicer):
             print("Initializing StairDetector...")
             self.stair_detector = StairDetector(
                 model_path=model_path,
-                distance_min_m=stair_config.get('distance_threshold', {}).get('min_m', 1.0),
-                distance_max_m=stair_config.get('distance_threshold', {}).get('max_m', 3.0),
                 confidence_threshold=stair_config.get('confidence_threshold', 0.5)
             )
             print("✓ StairDetector initialized successfully!")
