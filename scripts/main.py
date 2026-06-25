@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import os
 import asyncio
-from sender import send_image
+from sender import send_frames
 from receiver import receive_and_respond
 
 load_dotenv()
@@ -10,7 +10,7 @@ role = os.getenv("ROLE", "sender").lower()
 
 if role == "sender":
     print("Running as sender (gRPC client)...")
-    asyncio.run(send_image())
+    asyncio.run(send_frames())
 elif role == "receiver":
     print("Running as receiver (gRPC server)...")
     receive_and_respond()

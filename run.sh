@@ -7,7 +7,7 @@ source venv/bin/activate
 export ROLE=receiver
 
 # Auto-detect Tailscale IP of THIS machine
-export DENMARK_HOST=$(tailscale ip -4)
+export DENMARK_HOST=$HOSTNAME
 
 echo "Detected Tailscale IP: $DENMARK_HOST"
 

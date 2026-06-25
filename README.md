@@ -44,6 +44,11 @@ export DENMARK_HOST="hostname of PC locked into tailscale can also be found on t
 
 ### Run scripts:
 ```bash
+chmod +x run.sh
+bash run.sh
+```
+If the `sh` script does not work run: 
+```bash
 python scripts/main.py
 ```
 
