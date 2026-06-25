@@ -6,6 +6,8 @@ import numpy as np
 from dotenv import load_dotenv
 import vision_pb2
 import vision_pb2_grpc
+import cv2
+
 
 try:
     import pyrealsense2 as rs
@@ -43,49 +45,24 @@ class RealSenseStreamer:
         depth_frame = frames.get_depth_frame()
         self.depth_intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
     
-    def get_pointcloud_from_depth(self, depth_frame):
-        """Convert depth frame to point cloud."""
-        
-        depth_data = np.asanyarray(depth_frame.get_data())
-        depth_scale = self.pipeline.get_active_profile().get_device().first_depth_sensor().get_depth_scale()
-        
-        h, w = depth_data.shape
-        points = []
-        
-        for y in range(0, h, 2):  # Sample every 2 pixels
-            for x in range(0, w, 2):
-                depth = depth_data[y, x] * depth_scale
-                
-                if depth == 0 or depth > 10:  # Skip invalid/too far
-                    continue
-                
-                # Convert to 3D point
-                x_3d = (x - self.depth_intrinsics.ppx) * depth / self.depth_intrinsics.fx
-                y_3d = (y - self.depth_intrinsics.ppy) * depth / self.depth_intrinsics.fy
-                
-                points.append([x_3d, y_3d, depth])
-        
-        if len(points) == 0:
-            return np.array([], dtype=np.float32)
-        
-        return np.array(points, dtype=np.float32)
-    
     def get_next_frame(self):
-        """Get next RGB image and point cloud."""
+        """Get next RGB image and depth image."""
         frames = self.pipeline.wait_for_frames()
         aligned_frames = self.align.process(frames)
-        
+
         depth_frame = aligned_frames.get_depth_frame()
         color_frame = aligned_frames.get_color_frame()
-        
+
         if not depth_frame or not color_frame:
             return None, None
-        
+
         rgb_data = np.asanyarray(color_frame.get_data())
-        pointcloud = self.get_pointcloud_from_depth(depth_frame)
-        
-        return rgb_data, pointcloud
-    
+
+        # Raw 16-bit depth image (z16)
+        depth_image = np.asanyarray(depth_frame.get_data())
+
+        return rgb_data, depth_image
+
     def stop(self):
         """Stop camera."""
         self.pipeline.stop()
@@ -113,23 +90,21 @@ async def send_frames():
             
             try:
                 while True:
-                    rgb_data, pointcloud = streamer.get_next_frame()
-                    
-                    if rgb_data is None or pointcloud is None or len(pointcloud) == 0:
+                    rgb_data, depth_image = streamer.get_next_frame()
+
+                    if rgb_data is None or depth_image is None:
                         continue
-                    
-                    # Encode RGB as JPEG bytes
-                    import cv2
+
                     _, rgb_bytes = cv2.imencode('.jpg', rgb_data)
-                    
-                    # Encode point cloud as binary
-                    pc_bytes = pointcloud.tobytes()
+
+                    # Preserve 16-bit depth values
+                    _, depth_png = cv2.imencode('.png', depth_image)
                     
                     frame_count += 1
                     
                     frame = vision_pb2.ImageFrame(
                         image_data=rgb_bytes.tobytes(),
-                        pointcloud_data=pc_bytes,
+                        pointcloud_data=depth_png.tobytes(),
                         filename=f"frame_{frame_count:06d}.jpg",
                         timestamp=int(time.time() * 1000)
                     )
