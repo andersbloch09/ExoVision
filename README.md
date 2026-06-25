@@ -13,6 +13,8 @@ The output of the model includes stair detection status and associated informati
 The dataset is provided in Teams as a ZIP archive named `data`.
 
 
+<img src="runs/detect/val-5/val_batch2_labels.jpg" width="896" height="370"/>
+
 # Download Tailscale and log in
 Login information is found in Teams - tailscale email information
 ```bash
@@ -96,6 +98,7 @@ Different scripts in this workspace are used for training models, visualization,
 - `split_dataset.py`  
   Splits the dataset into training, validation, and test sets for model training.
 
+If newer models are trained the weights shall be placed in `scripts/models`. 
 
 ## If code is changed generate code for gRPC
 ```bash
@@ -108,8 +111,9 @@ cd ..
 ## Data collection command:
 To label more data, place the `data` folder in the root directory of the environment and run the following command:
 ```bash 
-labelImg data\processed\train\images data\processed\train\labels\classes.txt
+labelImg data/processed/train/images data/processed/train/labels/classes.txt
 ```
+To visualize data in samples use script `data/data_visualizer.py`
 
 ## Model Weight Update Strategies
 

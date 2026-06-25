@@ -2,7 +2,8 @@ from dotenv import load_dotenv
 import os
 import asyncio
 from sender import send_frames
-from receiver import receive_and_respond
+from receiver import serve
+
 
 load_dotenv()
 
@@ -13,6 +14,10 @@ if role == "sender":
     asyncio.run(send_frames())
 elif role == "receiver":
     print("Running as receiver (gRPC server)...")
-    receive_and_respond()
+    serve()
+
+
 else:
     raise ValueError(f"Unknown ROLE: {role}")
+
+

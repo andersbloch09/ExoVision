@@ -3,6 +3,11 @@ import numpy as np
 from ultralytics import YOLO
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
+import os
+import json
+import time
+import sys
+import subprocess
 
 class StairDetector:
     """
@@ -10,26 +15,139 @@ class StairDetector:
     """
     
     def __init__(self, model_path: str, 
-                 confidence_threshold: float = 0.5):
+                 confidence_threshold: float = 0.5,
+                 sample_confidence_threshold: float = 0.8,
+                 training_threshold: int = 3000):
         """
         Initialize stair detector.
         """
+
         self.model = YOLO(model_path)
         self.confidence_threshold = confidence_threshold
-        
+        self.sample_confidence_threshold = sample_confidence_threshold
+
+        self.sample_path = "data/samples/train/images"
+        self.sample_count = len(os.listdir(self.sample_path)) if os.path.exists(self.sample_path) else 0
+        self.training_threshold = training_threshold
+        self.added_training_flag = self.sample_count
+        self.training_in_progress = False
+
         # Class names mapping
         self.class_names = {
             0: "flat_ground",
             1: "ascending_stairs",
             2: "descending_stairs"
         }
-    
+
+        self.last_frame = None  # For frame difference check
+
+
+    def swap_model(self):
+        """
+        Replace best.pt with best_new.pt and reload YOLO model.
+        """
+        self.training_in_progress = False  # Reset training flag
+        old_model_path = r"scripts/models/best.pt"
+        new_model_path = r"scripts/models/best_new.pt"
+
+        if not os.path.exists(new_model_path):
+            raise FileNotFoundError(f"New model not found at {new_model_path}")
+
+        # Delete old model if it exists
+        if os.path.exists(old_model_path):
+            os.remove(old_model_path)
+            print(f"Deleted old model: {old_model_path}")
+
+        # Rename new → old name
+        os.rename(new_model_path, old_model_path)
+        print(f"Renamed {new_model_path} → {old_model_path}")
+
+        # Reload model
+        self.model = YOLO(old_model_path)
+        print("Model reloaded successfully")
+        
+
+    def _convert_bbox_to_yolo(self, bbox, img_w, img_h):
+        x1, y1, x2, y2 = bbox
+
+        x_center = (x1 + x2) / 2.0 / img_w
+        y_center = (y1 + y2) / 2.0 / img_h
+        width = (x2 - x1) / img_w
+        height = (y2 - y1) / img_h
+
+        return x_center, y_center, width, height
+
+
+    def save_sample(self, rgb_image, bbox, stair_type, confidence):
+        try:
+            if stair_type == "none":
+                return
+            
+            base_dir = "data/samples"
+            images_dir = os.path.join(base_dir, "train", "images")
+            labels_dir = os.path.join(base_dir, "train", "labels")
+
+            os.makedirs(images_dir, exist_ok=True)
+            os.makedirs(labels_dir, exist_ok=True)
+
+            timestamp = int(time.time() * 1000)
+            img_name = f"{timestamp}.jpg"
+
+            h, w = rgb_image.shape[:2]
+
+            # 1. Save image
+            img_path = os.path.join(images_dir, img_name)
+            cv2.imwrite(img_path, rgb_image)
+
+            self.added_training_flag += 1
+
+
+            if self.added_training_flag - self.sample_count >= self.training_threshold and not self.training_in_progress:
+                print(f"⚠️  Training threshold reached: {self.added_training_flag} samples. Starting training...")
+                self.start_training()
+                self.sample_count = len(os.listdir(self.sample_path)) if os.path.exists(self.sample_path) else 0
+                self.added_training_flag = self.sample_count
+
+            # 2. Convert label
+            class_map = {
+                "flat_ground": 0,
+                "ascending_stairs": 1,
+                "descending_stairs": 2
+            }
+
+            class_id = class_map.get(stair_type, -1)
+            if class_id == -1:
+                return
+
+            x, y, bw, bh = self._convert_bbox_to_yolo(bbox, w, h)
+
+            # 3. Save label file
+            label_path = os.path.join(labels_dir, f"{timestamp}.txt")
+
+            with open(label_path, "w") as f:
+                f.write(f"{class_id} {x} {y} {bw} {bh}\n")
+
+            print(f"Saved YOLO sample: {img_name}")
+
+        except Exception as e:
+            print(f"Logging error: {e}")
+
+
+    def start_training(self):
+        self.training_in_progress = True
+        subprocess.Popen([
+            sys.executable,
+            "training/train.py"
+        ])
+
     def detect_stairs(self, rgb_image: np.ndarray, 
                      depth_image: np.ndarray,
                      camera_intrinsics: dict) -> dict:
         """
         Detect stairs in RGB image and calculate distance using isolated depth regions.
         """
+        if os.path.exists(r"scripts/models/best_new.pt"):
+            self.swap_model()
         # Run YOLO inference
         results = self.model(rgb_image, conf=self.confidence_threshold, verbose=False)
         
@@ -43,11 +161,35 @@ class StairDetector:
         
         # Get best detection (highest confidence)
         detections = results[0].boxes
+
         best_idx = np.argmax(detections.conf.cpu().numpy())
         best_box = detections[best_idx]
+        confidence = float(best_box.conf[0])
+
+        if len(results) > 0 and len(results[0].boxes) > 0:
+            if self.last_frame is not None:
+                diff = np.mean(np.abs(rgb_image.astype(np.float32) - self.last_frame.astype(np.float32)))
+
+                if diff < 5:
+                    return {
+                'stair_type': 'none',
+                'confidence': 0.0,
+                'distance_m': -1,
+                'bbox': None
+            }
+
+            self.last_frame = rgb_image.copy()
+
+            if confidence > self.sample_confidence_threshold and self.training_in_progress == False:
+                self.save_sample(
+                    rgb_image=rgb_image,
+                    bbox=results[0].boxes.xyxy[0].cpu().numpy().astype(int),
+                    stair_type=results[0].names[int(results[0].boxes.cls[0])],
+                    confidence=confidence,
+                )
+
         
         class_id = int(best_box.cls[0])
-        confidence = float(best_box.conf[0])
         stair_type = self.class_names.get(class_id, "unknown")
         
         # Extract bounding box

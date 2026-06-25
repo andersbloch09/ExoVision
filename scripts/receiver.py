@@ -18,9 +18,6 @@ except ImportError:
 
 load_dotenv()
 
-DATA_DIR = os.path.join("data", "images")
-os.makedirs(DATA_DIR, exist_ok=True)
-
 class VisionModelService(vision_pb2_grpc.VisionModelServicer):
     def __init__(self):
         self.model_version = "1.0"
@@ -42,7 +39,7 @@ class VisionModelService(vision_pb2_grpc.VisionModelServicer):
             # Build full path to model weight file
             model_path = os.path.join(
                 os.path.dirname(__file__), "..",
-                stair_config.get('model_path', 'runs/detect/train/weights/best.pt')
+                stair_config.get('model_path', 'scripts/models/best.pt')
             )
             
             if not os.path.exists(model_path):
@@ -51,7 +48,9 @@ class VisionModelService(vision_pb2_grpc.VisionModelServicer):
             print("Initializing StairDetector...")
             self.stair_detector = StairDetector(
                 model_path=model_path,
-                confidence_threshold=stair_config.get('confidence_threshold', 0.5)
+                confidence_threshold=stair_config.get('confidence_threshold', 0.5),
+                sample_confidence_threshold=stair_config.get('sample_confidence_threshold', 0.8),
+                training_threshold=stair_config.get('training_threshold', 3000)
             )
             print("✓ StairDetector initialized successfully!")
         
@@ -198,7 +197,7 @@ class VisionModelService(vision_pb2_grpc.VisionModelServicer):
         except Exception as e:
             return vision_pb2.UpdateResponse(status="error", message=str(e))
 
-def receive_and_respond():
+def serve():
     print("Starting gRPC server initialization...")
     try:
         service = VisionModelService()
@@ -212,4 +211,4 @@ def receive_and_respond():
         print(f"✗ Error starting gRPC server: {e}")
 
 if __name__ == "__main__":
-    receive_and_respond()
+    serve()

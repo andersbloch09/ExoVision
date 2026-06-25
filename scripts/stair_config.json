@@ -1,14 +1,16 @@
 {
   "stair_detection": {
-    "model_path": "runs/detect/train-3/weights/best.pt",
+    "model_path": "scripts/models/best.pt",
     "confidence_threshold": 0.5,
+    "sample_confidence_threshold": 0.8,
+    "training_threshold": 3000,
     "enabled_stair_types": [
       "ascending_stairs"
     ],
     "description": "Only calculate distance for ascending stairs. Other types return type but distance=-1"
   },
   "visualization": {
-    "enabled": false,
+    "enabled": true,
     "rgb_display": true,
     "pointcloud_display": false,
     "description": "Enable live visualization of incoming frames with bounding boxes"
