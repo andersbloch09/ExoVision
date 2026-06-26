@@ -13,7 +13,7 @@ The output of the model includes stair detection status and associated informati
 The dataset is provided in Teams as a ZIP archive named `data`.
 
 
-<img src="runs/detect/val-5/val_batch2_labels.jpg" width="896" height="370"/>
+<img src="runs/detect/val-5/val_batch2_labels.jpg"/>
 
 # Download Tailscale and log in
 Login information is found in Teams - tailscale email information
