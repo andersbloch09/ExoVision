@@ -17,7 +17,8 @@ class StairDetector:
     def __init__(self, model_path: str, 
                  confidence_threshold: float = 0.5,
                  sample_confidence_threshold: float = 0.8,
-                 training_threshold: int = 3000):
+                 training_threshold: int = 3000,
+                 enable_training: bool = True):
         """
         Initialize stair detector.
         """
@@ -25,7 +26,7 @@ class StairDetector:
         self.model = YOLO(model_path)
         self.confidence_threshold = confidence_threshold
         self.sample_confidence_threshold = sample_confidence_threshold
-
+        self.enable_training = enable_training
         self.sample_path = "data/samples/train/images"
         self.sample_count = len(os.listdir(self.sample_path)) if os.path.exists(self.sample_path) else 0
         self.training_threshold = training_threshold
@@ -102,7 +103,7 @@ class StairDetector:
             self.added_training_flag += 1
 
 
-            if self.added_training_flag - self.sample_count >= self.training_threshold and not self.training_in_progress:
+            if self.added_training_flag - self.sample_count >= self.training_threshold and not self.training_in_progress and self.enable_training:
                 print(f"⚠️  Training threshold reached: {self.added_training_flag} samples. Starting training...")
                 self.start_training()
                 self.sample_count = len(os.listdir(self.sample_path)) if os.path.exists(self.sample_path) else 0

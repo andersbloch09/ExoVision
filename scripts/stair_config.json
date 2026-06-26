@@ -4,6 +4,7 @@
     "confidence_threshold": 0.5,
     "sample_confidence_threshold": 0.8,
     "training_threshold": 3000,
+    "enable_training": false,
     "enabled_stair_types": [
       "ascending_stairs"
     ],

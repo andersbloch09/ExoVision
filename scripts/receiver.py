@@ -50,7 +50,8 @@ class VisionModelService(vision_pb2_grpc.VisionModelServicer):
                 model_path=model_path,
                 confidence_threshold=stair_config.get('confidence_threshold', 0.5),
                 sample_confidence_threshold=stair_config.get('sample_confidence_threshold', 0.8),
-                training_threshold=stair_config.get('training_threshold', 3000)
+                training_threshold=stair_config.get('training_threshold', 3000),
+                enable_training=stair_config.get('enable_training', True)
             )
             print("✓ StairDetector initialized successfully!")
         
