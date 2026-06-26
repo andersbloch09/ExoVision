@@ -5,6 +5,7 @@
     "sample_confidence_threshold": 0.8,
     "training_threshold": 3000,
     "enable_training": false,
+    "training_path": "data/processed/train/images",
     "enabled_stair_types": [
       "ascending_stairs"
     ],
